@@ -9,8 +9,7 @@ from db.database import engine
 from db.models import Offers
 from crud import upsert_offer
 from init_app import initialize_db
-from utils import safe_get, get_current_utc_datetime, parse_iso_to_utc_datetime
-
+from utils import safe_get, maybe, get_current_utc_datetime, parse_iso_to_utc_datetime
 
 
 async def get_olx_json_listings():
@@ -72,7 +71,7 @@ async def get_olx_json_listings():
                     photos=safe_get(raw_offer, "photos", []),
                     itemCondition=safe_get(raw_offer, "itemCondition"),
 
-                    value=None if value is None else float(value),
+                    value=maybe(float, value),
                     currencyCode=safe_get(raw_offer, "price.regularPrice.currencyCode"),
                     negotiable=safe_get(raw_offer, "price.regularPrice.negotiable"),
                     exchange=safe_get(raw_offer, "price.exchange"),
