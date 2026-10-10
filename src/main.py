@@ -2,8 +2,16 @@ import asyncio
 import json
 import re
 from playwright.async_api import async_playwright
+from sqlmodel import Session
+from typing import Any
 
+from db.database import engine
+from db.models import Offers
+from crud import upsert_offer
 from init_app import initialize_db
+from utils import safe_get, get_current_utc_datetime, parse_iso_to_utc_datetime
+
+
 
 async def get_olx_json_listings():
     async with async_playwright() as p:
@@ -34,46 +42,58 @@ async def get_olx_json_listings():
         else:
             state_data = json.loads(raw_state)
 
-        ads = (
-            state_data.get("listing", {})
-            .get("listing", {})
-            .get("ads", [])
-        )
+        raw_offers = safe_get(state_data, "listing.listing.ads", [])
 
-        print(f"[+] Found {len(ads)} listings in raw JSON state.\n")
+        print(f"[+] Found {len(raw_offers)} listings in raw JSON state.\n")
 
-        for ad in ads[:5]:
-            title = ad.get("title")
-            ad_url = ad.get("url")
-            created_time = ad.get("created_time")
+        with Session(engine) as session:
+            for raw_offer in raw_offers:
+                # Safe extraction for parameters
+                params = {}
+                for param in safe_get(raw_offer, "params", []):
+                    key = safe_get(param, "key")
+                    value = safe_get(param, "value")
+                    if isinstance(value, dict):
+                        params[key] = safe_get(value, "value")
+                    else:
+                        params[key] = value
 
-            # Safe extraction for parameters
-            params = {}
-            for p in ad.get("params", []):
-                key = p.get("key")
-                val = p.get("value")
-                if isinstance(val, dict):
-                    params[key] = val.get("label") or val.get("value")
-                else:
-                    params[key] = val
+                price_properties: Any = safe_get(raw_offer, "price", {})
+                value = 0.0 if safe_get(price_properties, "free") else safe_get(price_properties, "regularPrice.value")  # make value 0 if free is true
 
-            # Safe extraction for photos (scalar string or dict)
-            photos = []
-            for photo in ad.get("photos", []):
-                if isinstance(photo, dict):
-                    photo_url = photo.get("link", "")
-                elif isinstance(photo, str):
-                    photo_url = photo
-                else:
-                    continue
-                photos.append(photo_url.replace("{width}x{height}", "1000x700"))
+                offer = Offers(
+                    url=safe_get(raw_offer, "url"),
+                    category_type=safe_get(raw_offer, "category.type"),
+                    isActive=safe_get(raw_offer, "isActive"),
 
-            print(f"Title: {title}")
-            print(f"URL: {ad_url}")
-            print(f"Created: {created_time}")
-            print(f"Price/Params: {params}")
-            print(f"Photos: {len(photos)} found")
-            print("-" * 50)
+                    title=safe_get(raw_offer, "title"),
+                    description=safe_get(raw_offer, "description"),
+                    params=params,
+                    photos=safe_get(raw_offer, "photos", []),
+                    itemCondition=safe_get(raw_offer, "itemCondition"),
+
+                    value=None if value is None else float(value),
+                    currencyCode=safe_get(raw_offer, "price.regularPrice.currencyCode"),
+                    negotiable=safe_get(raw_offer, "price.regularPrice.negotiable"),
+                    exchange=safe_get(raw_offer, "price.exchange"),
+                    sellerPaidDeliveryEnabled=safe_get(raw_offer, "payAndShip.sellerPaidDeliveryEnabled"),
+
+                    lat = safe_get(raw_offer, "map.lat"),
+                    lon = safe_get(raw_offer, "map.lon"),
+                    radius = safe_get(raw_offer, "map.radius"),
+
+                    createdTime=parse_iso_to_utc_datetime(safe_get(raw_offer, "createdTime")),
+                    lastRefreshTime=parse_iso_to_utc_datetime(safe_get(raw_offer, "lastRefreshTime")),
+                    validToTime=parse_iso_to_utc_datetime(safe_get(raw_offer, "validToTime")),
+                    lastScannedTime=get_current_utc_datetime()
+                )
+                upsert_offer(session, offer)
+
+                print(f"Title: {offer.title}")
+                print(f"URL: {offer.url}")
+                print(f"Price: {offer.value}")
+                print(f"Params: {offer.params}")
+                print("-" * 50)
 
         await browser.close()
 
