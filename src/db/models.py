@@ -1,0 +1,38 @@
+from typing import Any
+from sqlalchemy import Column, JSON
+from sqlmodel import Field, SQLModel
+from datetime import datetime
+
+
+class Offers(SQLModel, table=True):
+    model_config = {"validate_assignment": True}
+    __tablename__ = "offers"
+
+    url: str = Field(primary_key=True)
+    category_type: str = Field(index=True)
+    isActive: bool = Field(index=True)
+
+    # Content
+    title: str = Field(index=True)
+    description: str
+    params: dict[str, Any] = Field(default_factory=dict, sa_type=JSON)
+    photos: list = Field(default_factory=list, sa_type=JSON)
+    itemCondition: str = Field(index=True)
+
+    # Price
+    value: float | None = Field(default=None, index=True)
+    currencyCode: str | None = Field(default=None, index=True)
+    negotiable: bool | None = Field(default=False, index=True)
+    exchange: bool = Field(default=False, index=True)
+    sellerPaidDeliveryEnabled: bool | None = Field(default=False, index=True)
+
+    # Location
+    lat: float | None = Field(default=None, index=True)
+    lon: float | None = Field(default=None, index=True)
+    radius: int | None = Field(default=None, index=True)
+
+    # Time, UTC 0
+    createdTime: datetime = Field(index=True)
+    lastRefreshTime: datetime = Field(index=True)
+    validToTime: datetime = Field(index=True)
+    lastScannedTime: datetime = Field(index=True)
