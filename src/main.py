@@ -10,6 +10,7 @@ from db.models import Offers
 from crud import upsert_offer
 from init_app import initialize_db
 from utils import safe_get, maybe, get_current_utc_datetime, parse_iso_to_utc_datetime
+from logger import logger
 
 
 async def get_olx_json_listings():
@@ -23,7 +24,7 @@ async def get_olx_json_listings():
 
         query = "oneplus-13"
         url = f"https://www.olx.pl/elektronika/telefony/q-{query}/"
-        print(f"[*] Navigating to: {url}")
+        logger.info(f"[*] Navigating to: {url}")
 
         await page.goto(url, wait_until="domcontentloaded")
 
@@ -31,7 +32,7 @@ async def get_olx_json_listings():
 
         match = re.search(r'window\.__PRERENDERED_STATE__\s*=\s*(".*?"|\{.*?\});', content, re.DOTALL)
         if not match:
-            print("[!] Could not find __PRERENDERED_STATE__ in page source.")
+            logger.critical("[!] Could not find __PRERENDERED_STATE__ in page source.")
             await browser.close()
             return
 
@@ -43,7 +44,7 @@ async def get_olx_json_listings():
 
         raw_offers = safe_get(state_data, "listing.listing.ads", [])
 
-        print(f"[+] Found {len(raw_offers)} listings in raw JSON state.\n")
+        logger.info(f"[+] Found {len(raw_offers)} listings in raw JSON state.\n")
 
         with Session(engine) as session:
             for raw_offer in raw_offers:
@@ -88,11 +89,11 @@ async def get_olx_json_listings():
                 )
                 upsert_offer(session, offer)
 
-                print(f"Title: {offer.title}")
+                logger.info(f"Title: {offer.title}")
                 print(f"URL: {offer.url}")
-                print(f"Price: {offer.value}")
-                print(f"Params: {offer.params}")
-                print("-" * 50)
+                logger.info(f"Price: {offer.value}")
+                logger.info(f"Params: {offer.params}")
+                logger.info("-" * 50)
 
         await browser.close()
 

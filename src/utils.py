@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from collections.abc import Callable
+from logger import logger
 
 
 def safe_get(input_dict: dict, path: str, default=None, log_error: bool = True):
@@ -9,7 +10,7 @@ def safe_get(input_dict: dict, path: str, default=None, log_error: bool = True):
             value = value[key]
         except (KeyError, TypeError):
             if log_error:
-                print(f"[Warning] Failed to resolve path '{path}' at key '{key}'")
+                logger.warning(f"Failed to resolve path '{path}' at key '{key}'")
             return default
 
     if value is None:
