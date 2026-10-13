@@ -2,6 +2,8 @@ import logging
 import os
 from rich.console import Console
 from rich.logging import RichHandler
+import asyncio
+import sys
 
 
 IS_PROD = os.getenv("APP_ENV", "development").lower() == "production"
@@ -47,3 +49,18 @@ def setup_logger(name: str = "olx_search") -> logging.Logger:
 
 
 logger = setup_logger()
+
+
+def unhandled_exception_hook(exc_type, exc_value, exc_tb):
+    # Exit cleanly without errors on user cancellation (Ctrl+C or async cancellation)
+    if issubclass(exc_type, (KeyboardInterrupt, asyncio.CancelledError)):
+        sys.exit(0)
+
+    # Log any other unexpected crashes with full trace info
+    logger.critical(
+        "Unhandled exception encountered",
+        exc_info=(exc_type, exc_value, exc_tb),
+    )
+
+
+sys.excepthook = unhandled_exception_hook
