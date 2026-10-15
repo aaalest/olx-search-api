@@ -1,20 +1,49 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
-from sqlmodel import Session, select
+from contextlib import asynccontextmanager
 from typing import List
-from pydantic import BaseModel
 
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from sqlmodel import Session, select
+from pydantic import BaseModel
+from playwright.async_api import Browser, Playwright, async_playwright
+
+from init_app import initialize_db
 from db.database import engine
 from db.models import Offers
 from scraper import scrape_olx_offers
+from logger import logger
 
 
-app = FastAPI(title="OLX Search API", version="1.0")
+class AppState:
+    playwright: Playwright
+    browser: Browser
+
+class TypedFastAPI(FastAPI):
+    state: AppState
+
+@asynccontextmanager
+async def lifespan(app: TypedFastAPI):
+    initialize_db()
+
+    playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(headless=True)
+
+    app.state.playwright = playwright
+    app.state.browser = browser
+    logger.info("[+] Playwright browser instance started")
+
+    yield
+
+    await app.state.browser.close()
+    await app.state.playwright.stop()
+    logger.info("[-] Playwright browser instance closed")
+
+
+app = TypedFastAPI(title="OLX Search API", version="1.0", lifespan=lifespan)
 
 
 def get_session():
     with Session(engine) as session:
         yield session
-
 
 @app.get("/offers", response_model=List[Offers])
 def read_offers(
@@ -31,11 +60,14 @@ class ScrapeResponse(BaseModel):
     message: str
     count: int
 
-
 @app.post("/scrape", response_model=ScrapeResponse)
-async def trigger_scrape(url: str):
+async def trigger_scrape(request: Request, url: str):
     try:
-        count = await scrape_olx_offers(url)
+        browser = request.app.state.browser
+        if not browser:
+            raise HTTPException(status_code=500, detail="Browser instance not initialized.")
+
+        count = await scrape_olx_offers(browser, url)
 
         return ScrapeResponse(
             status="success",

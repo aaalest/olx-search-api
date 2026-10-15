@@ -1,9 +1,9 @@
-import asyncio
 import json
 import re
-from playwright.async_api import async_playwright
-from sqlmodel import Session
 from typing import Any
+
+from sqlmodel import Session
+from playwright.async_api import Browser, ViewportSize
 
 from db.database import engine
 from db.models import Offers
@@ -12,18 +12,17 @@ from utils import safe_get, maybe, get_current_utc_datetime, parse_iso_to_utc_da
 from logger import logger
 
 
-async def scrape_olx_offers(url: str) -> int:
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                       "AppleWebKit/537.36 (KHTML, like Gecko) "
-                       "Chrome/124.0.0.0 "
-                       "Safari/537.36",
-            viewport={"width": 1280, "height": 800}
-        )
-        page = await context.new_page()
+async def scrape_olx_offers(browser: Browser, url: str) -> int:
+    context = await browser.new_context(
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/124.0.0.0 "
+                   "Safari/537.36",
+        viewport=ViewportSize(width=1280, height=800)
+    )
+    page = await context.new_page()
 
+    try:
         print(f"[*] Navigating to: {url}")
         await page.goto(url, wait_until="domcontentloaded")
 
@@ -32,8 +31,7 @@ async def scrape_olx_offers(url: str) -> int:
         match = re.search(r'window\.__PRERENDERED_STATE__\s*=\s*(".*?"|\{.*?\});', content, re.DOTALL)
         if not match:
             logger.critical("[!] Could not find __PRERENDERED_STATE__ in page source.")
-            await browser.close()
-            return
+            return 0
 
         raw_state = match.group(1)
         if raw_state.startswith('"'):
@@ -96,6 +94,6 @@ async def scrape_olx_offers(url: str) -> int:
                 logger.info(f"Price: {offer.value}")
                 logger.info(f"Params: {offer.params}")
                 logger.info("-" * 50)
-
-        await browser.close()
         return count
+    finally:
+        await context.close()
