@@ -1,17 +1,15 @@
 import logging
-import os
 from rich.console import Console
 from rich.logging import RichHandler
 import asyncio
 import sys
 
-
-IS_PROD = os.getenv("APP_ENV", "development").lower() == "production"
-NO_COLOR = bool(os.getenv("NO_COLOR"))
+from config import settings
 
 
 def setup_logger(name: str = "olx_search") -> logging.Logger:
-    enable_color = not IS_PROD and not NO_COLOR
+    # TODO: print logs as JSON if settings.is_prod() is True
+    enable_color = not settings.is_prod
 
     # 1. Unified console & handler
     console = Console(
