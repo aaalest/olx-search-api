@@ -10,21 +10,21 @@ class Offers(SQLModel, table=True):
 
     url: str = Field(primary_key=True)
     category_type: str = Field(index=True)
-    isActive: bool = Field(index=True)
+    is_active: bool = Field(index=True)
 
     # Content
     title: str = Field(index=True)
     description: str
     params: dict[str, Any] = Field(default_factory=dict, sa_type=JSON)
     photos: list = Field(default_factory=list, sa_type=JSON)
-    itemCondition: str = Field(index=True)
+    item_condition: str = Field(index=True)
 
     # Price
     value: float | None = Field(default=None, index=True)
-    currencyCode: str | None = Field(default=None, index=True)
+    currency_code: str | None = Field(default=None, index=True)
     negotiable: bool | None = Field(default=False, index=True)
     exchange: bool = Field(default=False, index=True)
-    sellerPaidDeliveryEnabled: bool | None = Field(default=False, index=True)
+    seller_paid_delivery: bool | None = Field(default=False, index=True)
 
     # Location
     lat: float | None = Field(default=None, index=True)
@@ -32,7 +32,7 @@ class Offers(SQLModel, table=True):
     radius: int | None = Field(default=None, index=True)
 
     # Time, UTC 0
-    createdTime: datetime = Field(index=True)
-    lastRefreshTime: datetime = Field(index=True)
-    validToTime: datetime = Field(index=True)
-    lastScannedTime: datetime = Field(index=True)
+    created_time: datetime = Field(index=True)
+    last_refresh_time: datetime = Field(index=True)
+    valid_to_time: datetime = Field(index=True)
+    last_scanned_time: datetime = Field(index=True)

@@ -63,28 +63,28 @@ async def scrape_olx_offers(browser: Browser, url: str) -> int:
                 offer = Offers(
                     url=safe_get(raw_offer, "url"),
                     category_type=safe_get(raw_offer, "category.type"),
-                    isActive=safe_get(raw_offer, "isActive"),
+                    is_active=safe_get(raw_offer, "isActive"),
 
                     title=safe_get(raw_offer, "title"),
                     description=safe_get(raw_offer, "description"),
                     params=params,
                     photos=safe_get(raw_offer, "photos", []),
-                    itemCondition=safe_get(raw_offer, "itemCondition"),
+                    item_condition=safe_get(raw_offer, "itemCondition"),
 
                     value=maybe(float, value),
-                    currencyCode=safe_get(raw_offer, "price.regularPrice.currencyCode"),
+                    currency_code=safe_get(raw_offer, "price.regularPrice.currencyCode"),
                     negotiable=safe_get(raw_offer, "price.regularPrice.negotiable"),
                     exchange=safe_get(raw_offer, "price.exchange"),
-                    sellerPaidDeliveryEnabled=safe_get(raw_offer, "payAndShip.sellerPaidDeliveryEnabled"),
+                    seller_paid_delivery=safe_get(raw_offer, "payAndShip.sellerPaidDeliveryEnabled"),
 
                     lat = safe_get(raw_offer, "map.lat"),
                     lon = safe_get(raw_offer, "map.lon"),
                     radius = safe_get(raw_offer, "map.radius"),
 
-                    createdTime=parse_iso_to_utc_datetime(safe_get(raw_offer, "createdTime")),
-                    lastRefreshTime=parse_iso_to_utc_datetime(safe_get(raw_offer, "lastRefreshTime")),
-                    validToTime=parse_iso_to_utc_datetime(safe_get(raw_offer, "validToTime")),
-                    lastScannedTime=get_current_utc_datetime()
+                    created_time=parse_iso_to_utc_datetime(safe_get(raw_offer, "createdTime")),
+                    last_refresh_time=parse_iso_to_utc_datetime(safe_get(raw_offer, "lastRefreshTime")),
+                    valid_to_time=parse_iso_to_utc_datetime(safe_get(raw_offer, "validToTime")),
+                    last_scanned_time=get_current_utc_datetime()
                 )
                 upsert_offer(session, offer)
                 count += 1
