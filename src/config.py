@@ -15,6 +15,7 @@ class AppEnv(str, Enum):
 
 class Settings(BaseSettings):
     app_env: AppEnv = AppEnv.DEVELOPMENT
+    api_port: int = 8000
 
     @property
     def is_prod(self) -> bool:
