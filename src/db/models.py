@@ -36,3 +36,11 @@ class Offers(SQLModel, table=True):
     last_refresh_time: datetime = Field(index=True)
     valid_to_time: datetime = Field(index=True)
     last_scanned_time: datetime = Field(index=True)
+
+
+class ScheduledScrape(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    url: str = Field(index=True)
+    interval_minutes: int
+    is_active: bool = Field(default=True)
+    last_run_at: datetime | None = Field(default=None)
