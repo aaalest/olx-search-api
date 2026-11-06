@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from collections.abc import Callable
 from logger import logger
 
@@ -24,11 +23,3 @@ Apply a function to a value if it is not None, otherwise return None
 """
 def maybe[T, R](func: Callable[[T], R], value: T | None) -> R | None:
     return None if value is None else func(value)
-
-
-def get_current_utc_datetime() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def parse_iso_to_utc_datetime(iso_string: str) -> datetime:
-    return datetime.fromisoformat(iso_string).astimezone(timezone.utc)

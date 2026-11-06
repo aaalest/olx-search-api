@@ -8,7 +8,8 @@ from playwright.async_api import Browser, ViewportSize
 from db.database import engine
 from db.models import Offers
 from crud import upsert_offer
-from utils import safe_get, maybe, get_current_utc_datetime, parse_iso_to_utc_datetime
+from utils.common import safe_get, maybe
+from utils.time import get_current_utc_datetime, parse_iso_to_utc_datetime
 from logger import logger
 
 
